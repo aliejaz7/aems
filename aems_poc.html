@@ -1,0 +1,938 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DEEC Engine Hours Utility</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:       #0a0c10;
+  --bg1:      #0f1218;
+  --bg2:      #151a22;
+  --bg3:      #1c2330;
+  --bg4:      #232d3f;
+  --line:     rgba(255,255,255,0.07);
+  --line2:    rgba(255,255,255,0.12);
+  --text:     #e2e8f0;
+  --muted:    #7a8799;
+  --hint:     #4a5568;
+  --accent:   #3b82f6;
+  --accent-d: #1d4ed8;
+  --accent-g: rgba(59,130,246,0.12);
+  --green:    #22c55e; --green-d: #15803d; --green-bg: rgba(34,197,94,0.1);
+  --amber:    #f59e0b; --amber-d: #b45309; --amber-bg: rgba(245,158,11,0.1);
+  --red:      #ef4444; --red-d:   #b91c1c; --red-bg:   rgba(239,68,68,0.1);
+  --teal:     #14b8a6; --teal-bg: rgba(20,184,166,0.1);
+  --mono: 'IBM Plex Mono', monospace;
+  --sans: 'Inter', sans-serif;
+}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:var(--sans)}
+
+/* ── LAYOUT ── */
+.app{display:flex;height:100vh;overflow:hidden}
+.sidebar{width:220px;flex-shrink:0;background:var(--bg1);border-right:1px solid var(--line);display:flex;flex-direction:column;overflow:hidden}
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+.topbar{height:52px;flex-shrink:0;background:var(--bg1);border-bottom:1px solid var(--line);display:flex;align-items:center;padding:0 20px;gap:12px}
+.page{flex:1;overflow-y:auto;padding:20px;display:none}
+.page.active{display:block}
+
+/* ── SIDEBAR ── */
+.logo{padding:18px 16px 14px;border-bottom:1px solid var(--line)}
+.logo-tag{font-family:var(--mono);font-size:9px;letter-spacing:.18em;color:var(--hint);text-transform:uppercase;margin-bottom:4px}
+.logo-name{font-size:15px;font-weight:600;color:var(--text);letter-spacing:-.01em}
+.logo-sub{font-size:10px;color:var(--muted);margin-top:2px}
+.base-sel{margin:10px 10px 4px;background:var(--bg2);border:1px solid var(--line2);border-radius:6px;padding:6px 10px;display:flex;align-items:center;gap:6px;cursor:pointer}
+.base-sel-label{font-size:10px;color:var(--muted);font-family:var(--mono);letter-spacing:.06em;text-transform:uppercase}
+.base-sel-val{font-size:11px;font-weight:500;color:var(--accent);font-family:var(--mono)}
+.base-sel-arrow{margin-left:auto;color:var(--hint);font-size:10px}
+nav{flex:1;padding:8px 8px;overflow-y:auto;display:flex;flex-direction:column;gap:1px}
+.ns{font-size:9px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--hint);padding:10px 8px 4px}
+.ni{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:6px;cursor:pointer;font-size:12px;color:var(--muted);transition:all .12s;border:none;background:none;width:100%;text-align:left}
+.ni:hover{background:var(--bg3);color:var(--text)}
+.ni.active{background:var(--accent-g);color:var(--accent);border:1px solid rgba(59,130,246,0.2)}
+.ni-ico{width:15px;height:15px;flex-shrink:0;opacity:.5}
+.ni.active .ni-ico{opacity:1}
+.ni-badge{margin-left:auto;font-size:9px;font-family:var(--mono);padding:1px 5px;border-radius:4px;font-weight:500}
+.sidebar-foot{padding:10px;border-top:1px solid var(--line)}
+.user-row{display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--bg2);border-radius:6px;border:1px solid var(--line)}
+.av{width:26px;height:26px;border-radius:50%;background:var(--accent-g);border:1px solid rgba(59,130,246,0.3);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;color:var(--accent);flex-shrink:0;font-family:var(--mono)}
+.u-info{flex:1;min-width:0}
+.u-name{font-size:11px;font-weight:500;color:var(--text)}
+.u-role{font-size:9px;color:var(--muted);font-family:var(--mono)}
+.u-badge{font-size:8px;font-family:var(--mono);font-weight:600;padding:2px 5px;border-radius:3px;background:var(--teal-bg);color:var(--teal);text-transform:uppercase;letter-spacing:.06em;border:1px solid rgba(20,184,166,0.2)}
+
+/* ── TOPBAR ── */
+.tb-title{font-size:13px;font-weight:500;color:var(--text)}
+.tb-sub{font-size:10px;color:var(--muted);font-family:var(--mono)}
+.tb-divider{width:1px;height:18px;background:var(--line2);margin:0 4px}
+.tb-right{margin-left:auto;display:flex;align-items:center;gap:6px}
+.btn{padding:5px 12px;border-radius:5px;border:1px solid var(--line2);background:var(--bg2);font-size:11px;font-family:var(--sans);cursor:pointer;color:var(--text);font-weight:500;transition:all .12s}
+.btn:hover{background:var(--bg3);border-color:var(--line2)}
+.btn-acc{background:var(--accent-g);color:var(--accent);border-color:rgba(59,130,246,0.3)}
+.btn-acc:hover{background:rgba(59,130,246,0.2)}
+.btn-red{background:var(--red-bg);color:var(--red);border-color:rgba(239,68,68,0.3)}
+.sync-dot{width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+/* ── SHARED COMPONENTS ── */
+.section-label{font-size:9px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--hint);margin-bottom:10px}
+.card{background:var(--bg1);border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.card-head{padding:10px 14px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:8px}
+.card-title{font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.card-body{padding:14px}
+
+/* KPI strip */
+.kpi-row{display:grid;gap:8px;margin-bottom:16px}
+.kpi-5{grid-template-columns:repeat(5,minmax(0,1fr))}
+.kpi-4{grid-template-columns:repeat(4,minmax(0,1fr))}
+.kpi-3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.kpi{background:var(--bg2);border:1px solid var(--line);border-radius:7px;padding:12px 14px}
+.kpi-label{font-size:9px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--hint);margin-bottom:5px}
+.kpi-val{font-size:24px;font-weight:500;font-family:var(--mono);line-height:1;color:var(--text)}
+.kpi-foot{font-size:9px;color:var(--hint);margin-top:3px;font-family:var(--mono)}
+.kv-green{color:var(--green)}.kv-amber{color:var(--amber)}.kv-red{color:var(--red)}.kv-blue{color:var(--accent)}.kv-teal{color:var(--teal)}
+
+/* Tables */
+.tbl-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:11px}
+th{padding:7px 10px;text-align:left;font-size:9px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--hint);border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:middle;white-space:nowrap}
+tr:last-child td{border-bottom:none}
+tr.tr:hover td{background:var(--bg3);cursor:pointer}
+.mono{font-family:var(--mono);font-size:10px}
+.eid{font-family:var(--mono);font-size:10px;font-weight:500;color:var(--text)}
+.dim{color:var(--muted);font-size:10px}
+
+/* Badges */
+.badge{display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:4px;font-size:9px;font-weight:600;white-space:nowrap;text-transform:uppercase;letter-spacing:.05em;font-family:var(--mono)}
+.bdot{width:4px;height:4px;border-radius:50%;flex-shrink:0}
+.b-green{background:var(--green-bg);color:var(--green);border:1px solid rgba(34,197,94,0.2)}
+.b-amber{background:var(--amber-bg);color:var(--amber);border:1px solid rgba(245,158,11,0.2)}
+.b-red  {background:var(--red-bg)  ;color:var(--red)  ;border:1px solid rgba(239,68,68,0.2)}
+.b-blue {background:var(--accent-g);color:var(--accent);border:1px solid rgba(59,130,246,0.2)}
+.b-teal {background:var(--teal-bg) ;color:var(--teal) ;border:1px solid rgba(20,184,166,0.2)}
+
+/* Life bar */
+.bar-wrap{display:flex;align-items:center;gap:6px}
+.bar-track{flex:1;height:4px;background:var(--bg4);border-radius:2px;overflow:hidden}
+.bar-fill{height:100%;border-radius:2px;transition:width .4s}
+.bar-pct{font-family:var(--mono);font-size:9px;color:var(--muted);min-width:26px;text-align:right}
+
+/* Alert strip */
+.alert{display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--red-bg);border:1px solid rgba(239,68,68,0.25);border-radius:6px;font-size:11px;color:var(--red);margin-bottom:14px}
+.alert-link{margin-left:auto;font-size:10px;cursor:pointer;text-decoration:underline;white-space:nowrap;color:var(--red)}
+.info-strip{display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--amber-bg);border:1px solid rgba(245,158,11,0.25);border-radius:6px;font-size:11px;color:var(--amber);margin-bottom:14px}
+
+/* Grid helpers */
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+.gap-12{display:flex;flex-direction:column;gap:12px}
+
+/* Filter tabs */
+.ftabs{display:flex;gap:3px;margin-left:auto}
+.ftab{padding:3px 9px;border-radius:4px;border:1px solid var(--line);font-size:10px;cursor:pointer;background:var(--bg2);color:var(--muted);transition:all .12s;font-family:var(--mono)}
+.ftab:hover{background:var(--bg3)}
+.ftab.on{background:var(--accent-g);color:var(--accent);border-color:rgba(59,130,246,0.3)}
+
+/* Sparkline placeholder */
+.spark{height:32px;display:flex;align-items:flex-end;gap:2px;padding:0 2px}
+.spark-bar{flex:1;border-radius:2px 2px 0 0;background:var(--accent-g);border-top:1px solid rgba(59,130,246,.4);min-height:2px}
+
+/* Progress ring */
+.ring-wrap{display:flex;flex-direction:column;align-items:center;gap:6px}
+.ring-label{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;font-family:var(--mono);text-align:center}
+
+/* Notification dot */
+.notif{width:6px;height:6px;border-radius:50%;background:var(--red);flex-shrink:0}
+
+/* Scrollbar */
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:2px}
+
+/* ── PAGE SPECIFIC ── */
+
+/* Daily State */
+.ds-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px}
+.ds-card{background:var(--bg2);border:1px solid var(--line);border-radius:7px;padding:12px}
+.ds-header{display:flex;align-items:center;gap:6px;margin-bottom:8px}
+.ds-title{font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
+.ds-big{font-size:28px;font-weight:300;font-family:var(--mono);line-height:1}
+.ds-rows{display:flex;flex-direction:column;gap:4px;margin-top:8px;padding-top:8px;border-top:1px solid var(--line)}
+.ds-row{display:flex;justify-content:space-between;font-size:10px}
+.ds-row-label{color:var(--muted)}
+.ds-row-val{font-family:var(--mono);font-weight:500}
+
+/* Stagger chart */
+.stagger-chart{padding:14px;position:relative;overflow:hidden}
+.stagger-axis{display:flex;justify-content:space-between;font-size:9px;color:var(--hint);font-family:var(--mono);margin-bottom:8px;padding:0 4px}
+.stagger-lanes{display:flex;flex-direction:column;gap:6px}
+.stagger-lane{display:flex;align-items:center;gap:8px}
+.sl-label{font-family:var(--mono);font-size:9px;color:var(--muted);width:72px;flex-shrink:0;text-align:right}
+.sl-track{flex:1;height:18px;background:var(--bg3);border-radius:3px;position:relative;overflow:hidden}
+.sl-fill{height:100%;border-radius:3px;position:absolute;left:0;top:0;display:flex;align-items:center;padding-left:6px}
+.sl-fill-label{font-size:9px;font-family:var(--mono);font-weight:500;color:rgba(255,255,255,.7)}
+.sl-rem{font-family:var(--mono);font-size:9px;color:var(--muted);width:52px;flex-shrink:0}
+.stagger-line{position:absolute;top:0;bottom:0;width:1px;background:rgba(239,68,68,.5);border-left:1px dashed rgba(239,68,68,.4);pointer-events:none}
+.stagger-line-label{position:absolute;top:0;font-size:8px;color:var(--red);font-family:var(--mono);white-space:nowrap;padding-left:3px}
+
+/* UTE chart bars */
+.ute-bars{display:flex;align-items:flex-end;gap:4px;height:80px;padding:0 4px}
+.ute-bar-wrap{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px}
+.ute-bar{width:100%;border-radius:2px 2px 0 0;background:var(--accent-g);border-top:1px solid rgba(59,130,246,.5);transition:all .3s}
+.ute-bar.cur{background:rgba(59,130,246,.25);border-top-color:var(--accent)}
+.ute-bar-label{font-size:8px;color:var(--hint);font-family:var(--mono)}
+
+/* Projection table highlight */
+tr.proj-warn td{background:rgba(245,158,11,.04)}
+tr.proj-crit td{background:rgba(239,68,68,.05)}
+
+/* EOM timeline */
+.eom-timeline{display:flex;flex-direction:column;gap:0}
+.eom-item{display:flex;gap:12px;padding:10px 0;border-bottom:1px solid var(--line);position:relative}
+.eom-item:last-child{border-bottom:none}
+.eom-dot-col{display:flex;flex-direction:column;align-items:center;gap:0;padding-top:3px}
+.eom-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.eom-line{width:1px;flex:1;background:var(--line);margin-top:4px}
+.eom-content{flex:1;min-width:0}
+.eom-header{display:flex;align-items:center;gap:8px;margin-bottom:3px}
+.eom-id{font-family:var(--mono);font-size:10px;font-weight:500}
+.eom-date{font-size:9px;color:var(--muted);font-family:var(--mono)}
+.eom-detail{font-size:11px;color:var(--muted)}
+.eom-stats{display:flex;gap:12px;margin-top:4px}
+.eom-stat{font-size:9px;font-family:var(--mono);color:var(--hint)}
+.eom-stat span{color:var(--text);font-weight:500}
+
+/* Stats page */
+.stat-matrix{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px}
+.stat-cell{background:var(--bg2);border:1px solid var(--line);border-radius:6px;padding:10px 12px;text-align:center}
+.stat-cell-val{font-family:var(--mono);font-size:18px;font-weight:500;color:var(--text)}
+.stat-cell-label{font-size:9px;color:var(--hint);margin-top:3px;text-transform:uppercase;letter-spacing:.07em}
+
+/* Notification sheet */
+.notif-item{display:flex;align-items:center;gap:10px;padding:9px 14px;border-bottom:1px solid var(--line)}
+.notif-item:last-child{border-bottom:none}
+.notif-item:hover{background:var(--bg3)}
+.ni-engine{font-family:var(--mono);font-size:10px;font-weight:500;min-width:80px}
+.ni-remain{font-family:var(--mono);font-size:12px;font-weight:500}
+.ni-detail{flex:1}
+.ni-desc{font-size:11px;color:var(--text)}
+.ni-meta{font-size:9px;color:var(--muted);font-family:var(--mono);margin-top:1px}
+
+/* Upload zone */
+.upload-zone{border:1px dashed var(--line2);border-radius:8px;padding:28px;display:flex;flex-direction:column;align-items:center;gap:8px;cursor:pointer;transition:all .15s;background:var(--bg2)}
+.upload-zone:hover{border-color:var(--accent);background:var(--accent-g)}
+.upload-zone svg{opacity:.4}
+.upload-zone:hover svg{opacity:.8}
+.upload-title{font-size:13px;font-weight:500}
+.upload-hint{font-size:11px;color:var(--muted)}
+.field-map{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:12px}
+.field-row{display:flex;align-items:center;gap:8px;background:var(--bg2);border:1px solid var(--line);border-radius:5px;padding:6px 10px}
+.field-src{font-family:var(--mono);font-size:10px;color:var(--muted);flex:1}
+.field-arrow{color:var(--hint);font-size:10px}
+.field-dst{font-family:var(--mono);font-size:10px;color:var(--accent);flex:1;text-align:right}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- ── SIDEBAR ── -->
+<aside class="sidebar">
+  <div class="logo">
+    <div class="logo-tag">DEEC · EHU v3.1</div>
+    <div class="logo-name">Engine Hours Utility</div>
+    <div class="logo-sub">Fleet Lifecycle Management</div>
+  </div>
+  <div class="base-sel" onclick="cycleBase()">
+    <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><rect x=".5" y=".5" width="9" height="9" rx="1.5" stroke="currentColor" stroke-width=".8" opacity=".5"/><path d="M2.5 3h5M2.5 5h5M2.5 7h3" stroke="currentColor" stroke-width=".8" stroke-linecap="round"/></svg>
+    <div>
+      <div class="base-sel-label">Base</div>
+      <div class="base-sel-val" id="base-val">KAMRA</div>
+    </div>
+    <span class="base-sel-arrow">⌄</span>
+  </div>
+  <nav>
+    <div class="ns">Monitor</div>
+    <button class="ni active" onclick="showPage('daily',this)">
+      <svg class="ni-ico" viewBox="0 0 15 15" fill="none"><rect x="1" y="1" width="5.5" height="5.5" rx="1.2" stroke="currentColor" stroke-width="1"/><rect x="8.5" y="1" width="5.5" height="5.5" rx="1.2" stroke="currentColor" stroke-width="1"/><rect x="1" y="8.5" width="5.5" height="5.5" rx="1.2" stroke="currentColor" stroke-width="1"/><rect x="8.5" y="8.5" width="5.5" height="5.5" rx="1.2" stroke="currentColor" stroke-width="1"/></svg>
+      Daily State
+    </button>
+    <button class="ni" onclick="showPage('fleet',this)">
+      <svg class="ni-ico" viewBox="0 0 15 15" fill="none"><path d="M1 11L4 7l3 3.5 3-4.5 4 5" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Fleet Register
+    </button>
+    <button class="ni" onclick="showPage('alerts',this)">
+      <svg class="ni-ico" viewBox="0 0 15 15" fill="none"><path d="M7.5 1.5L13.5 13H1.5L7.5 1.5Z" stroke="currentColor" stroke-width="1" stroke-linejoin="round"/><line x1="7.5" y1="6" x2="7.5" y2="9.5" stroke="currentColor" stroke-width="1" stroke-linecap="round"/><circle cx="7.5" cy="11.5" r=".7" fill="currentColor"/></svg>
+      Notifications
+      <span class="ni-badge" style="background:var(--red-bg);color:var(--red);border:1px solid rgba(239,68,68,.2)">5</span>
+    </button>
+    <div class="ns">Analysis</div>
+    <button class="ni" onclick="showPage('stagger',this)">
+      <svg class="ni-ico" viewBox="0 0 15 15" fill="none"><line x1="2" y1="13" x2="13" y2="13" stroke="currentColor" stroke-width="1" stroke-linecap="round"/><rect x="2" y="8" width="2.5" height="5" rx=".5" fill="currentColor" opacity=".6"/><rect x="6.5" y="5" width="2.5" height="8" rx=".5" fill="currentColor" opacity=".8"/><rect x="10.5" y="2" width="2.5" height="11" rx=".5" fill="currentColor"/></svg>
+      Stagger
+    </button>
+    <button class="ni" onclick="showPage('ute',this)">
+      <svg class="ni-ico" viewBox="0 0 15 15" fill="none"><path d="M1 11.5C3 11.5 4 5 5.5 5C7 5 7.5 8.5 9 8.5C10.5 8.5 11.5 3 13.5 3" stroke="currentColor" stroke-width="1" stroke-linecap="round"/></svg>
+      UTE Rate &amp; Trends
+    </button>
+    <button class="ni" onclick="showPage('proj',this)">
+      <svg class="ni-ico" viewBox="0 0 15 15" fill="none"><path d="M2 12L6 8l3 2.5 4-6" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/><path d="M10 4.5h3v3" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Projections
+    </button>
+    <div class="ns">Records</div>
+    <button class="ni" onclick="showPage('eom',this)">
+      <svg class="ni-ico" viewBox="0 0 15 15" fill="none"><rect x="2" y="1" width="11" height="13" rx="1.5" stroke="currentColor" stroke-width="1"/><path d="M4.5 5h6M4.5 7.5h6M4.5 10h4" stroke="currentColor" stroke-width=".9" stroke-linecap="round"/></svg>
+      EOM State
+    </button>
+    <button class="ni" onclick="showPage('stats',this)">
+      <svg class="ni-ico" viewBox="0 0 15 15" fill="none"><circle cx="7.5" cy="7.5" r="6" stroke="currentColor" stroke-width="1"/><path d="M7.5 4v3.5l2.5 1.5" stroke="currentColor" stroke-width="1" stroke-linecap="round"/></svg>
+      Statistics
+    </button>
+    <button class="ni" onclick="showPage('upload',this)">
+      <svg class="ni-ico" viewBox="0 0 15 15" fill="none"><path d="M2 11v2h11v-2" stroke="currentColor" stroke-width="1" stroke-linecap="round"/><path d="M7.5 2v8M5 5l2.5-3 2.5 3" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Upload Data
+    </button>
+    <div class="ns">Admin</div>
+    <button class="ni" onclick="showPage('users',this)">
+      <svg class="ni-ico" viewBox="0 0 15 15" fill="none"><circle cx="7.5" cy="5" r="2.5" stroke="currentColor" stroke-width="1"/><path d="M2 13c0-3.04 2.46-5.5 5.5-5.5S13 9.96 13 13" stroke="currentColor" stroke-width="1" stroke-linecap="round"/></svg>
+      Users &amp; Roles
+    </button>
+  </nav>
+  <div class="sidebar-foot">
+    <div class="user-row">
+      <div class="av">WC</div>
+      <div class="u-info">
+        <div class="u-name">Tariq</div>
+        <div class="u-role">Fleet Engineer</div>
+      </div>
+      <span class="u-badge">ENG</span>
+    </div>
+  </div>
+</aside>
+
+<!-- ── MAIN ── -->
+<div class="main">
+  <div class="topbar">
+    <div>
+      <div class="tb-title" id="tb-title">Daily State</div>
+      <div class="tb-sub" id="tb-sub">Kamra · 29 Mar 2026 · 06:00Z</div>
+    </div>
+    <div class="tb-divider"></div>
+    <div class="sync-dot"></div>
+    <span style="font-size:10px;color:var(--muted);font-family:var(--mono)">Live</span>
+    <div class="tb-right">
+      <button class="btn">Print Report</button>
+      <button class="btn">Export CSV</button>
+      <button class="btn btn-acc">+ Upload Data</button>
+    </div>
+  </div>
+
+  <!-- ══════════ PAGE: DAILY STATE ══════════ -->
+  <div class="page active" id="page-daily">
+    <div class="alert">
+      <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M7 1L13 12H1L7 1Z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/><line x1="7" y1="5" x2="7" y2="8.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><circle cx="7" cy="10.5" r=".7" fill="currentColor"/></svg>
+      <strong>5 engines</strong> have crossed the notification threshold of 50 hrs remaining. Immediate action required.
+      <span class="alert-link" onclick="showPage('alerts',document.querySelector('[onclick*=alerts]'))">View sheet →</span>
+    </div>
+
+    <div class="kpi-row kpi-5">
+      <div class="kpi"><div class="kpi-label">Total Engines</div><div class="kpi-val">36</div><div class="kpi-foot">On base · all types</div></div>
+      <div class="kpi"><div class="kpi-label">Serviceable</div><div class="kpi-val kv-green">24</div><div class="kpi-foot">&gt; 600 hrs rem</div></div>
+      <div class="kpi"><div class="kpi-label">Caution</div><div class="kpi-val kv-amber">7</div><div class="kpi-foot">100–600 hrs rem</div></div>
+      <div class="kpi"><div class="kpi-label">Critical</div><div class="kpi-val kv-red">5</div><div class="kpi-foot">&lt; 100 hrs rem</div></div>
+      <div class="kpi"><div class="kpi-label">Avg UTE Rate</div><div class="kpi-val kv-teal">18.4</div><div class="kpi-foot">hrs/month (3mo avg)</div></div>
+    </div>
+
+    <div class="ds-grid">
+      <!-- Engine summary card -->
+      <div class="ds-card">
+        <div class="ds-header">
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="6" r="5" stroke="var(--accent)" stroke-width="1"/><path d="M3 6h6M6 3v6" stroke="var(--accent)" stroke-width=".8" stroke-linecap="round"/></svg>
+          <span class="ds-title">Engine State</span>
+        </div>
+        <div class="ds-big kv-blue">36</div>
+        <div class="ds-rows">
+          <div class="ds-row"><span class="ds-row-label">Installed on A/C</span><span class="ds-row-val">28</span></div>
+          <div class="ds-row"><span class="ds-row-label">In Store / Spare</span><span class="ds-row-val">8</span></div>
+          <div class="ds-row"><span class="ds-row-label">In Shop (Maint)</span><span class="ds-row-val">3</span></div>
+          <div class="ds-row"><span class="ds-row-label">Due for GOH</span><span class="ds-row-val" style="color:var(--amber)">2</span></div>
+          <div class="ds-row"><span class="ds-row-label">Total Avail Hrs</span><span class="ds-row-val" style="color:var(--green)">14,820</span></div>
+        </div>
+      </div>
+      <!-- KCA summary card -->
+      <div class="ds-card">
+        <div class="ds-header">
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><rect x=".5" y=".5" width="11" height="11" rx="2" stroke="var(--teal)" stroke-width="1"/><path d="M3.5 6l2 2 3-3.5" stroke="var(--teal)" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span class="ds-title">KCA State</span>
+        </div>
+        <div class="ds-big kv-teal">36</div>
+        <div class="ds-rows">
+          <div class="ds-row"><span class="ds-row-label">KCA Compliant</span><span class="ds-row-val" style="color:var(--green)">31</span></div>
+          <div class="ds-row"><span class="ds-row-label">Discrepancy Open</span><span class="ds-row-val" style="color:var(--red)">2</span></div>
+          <div class="ds-row"><span class="ds-row-label">KCA Due (30 days)</span><span class="ds-row-val" style="color:var(--amber)">3</span></div>
+          <div class="ds-row"><span class="ds-row-label">Last KCA Audit</span><span class="ds-row-val">12 Mar 2026</span></div>
+          <div class="ds-row"><span class="ds-row-label">Total KCA Avail Hrs</span><span class="ds-row-val" style="color:var(--green)">12,640</span></div>
+        </div>
+      </div>
+      <!-- DEEC summary card -->
+      <div class="ds-card">
+        <div class="ds-header">
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><rect x="1" y="3" width="10" height="6" rx="1.5" stroke="var(--amber)" stroke-width="1"/><path d="M3.5 6h5M6 3V1M6 9v2" stroke="var(--amber)" stroke-width=".8" stroke-linecap="round"/></svg>
+          <span class="ds-title">DEEC State</span>
+        </div>
+        <div class="ds-big kv-amber">36</div>
+        <div class="ds-rows">
+          <div class="ds-row"><span class="ds-row-label">Serviceable</span><span class="ds-row-val" style="color:var(--green)">33</span></div>
+          <div class="ds-row"><span class="ds-row-label">Unserviceable</span><span class="ds-row-val" style="color:var(--red)">1</span></div>
+          <div class="ds-row"><span class="ds-row-label">Calibration Due</span><span class="ds-row-val" style="color:var(--amber)">2</span></div>
+          <div class="ds-row"><span class="ds-row-label">Software Ver</span><span class="ds-row-val">v4.2.1</span></div>
+          <div class="ds-row"><span class="ds-row-label">Total DEEC Avail Hrs</span><span class="ds-row-val" style="color:var(--green)">13,900</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Fleet health strip -->
+    <div class="section-label">Engine Life Distribution — All 36 Engines</div>
+    <div class="card" style="margin-bottom:14px">
+      <div class="card-body" id="fleet-life-strip"></div>
+    </div>
+
+    <!-- Quick table -->
+    <div class="section-label">Top Critical Engines</div>
+    <div class="card">
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>Engine ID</th><th>Type</th><th>TBO</th><th>Used</th><th>Remaining</th><th>Life Used</th><th>Status</th><th>Aircraft</th><th>Next Insp</th></tr></thead>
+          <tbody id="critical-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════ PAGE: FLEET REGISTER ══════════ -->
+  <div class="page" id="page-fleet">
+    <div class="kpi-row kpi-4">
+      <div class="kpi"><div class="kpi-label">Total Fleet</div><div class="kpi-val">36</div><div class="kpi-foot">Engines on register</div></div>
+      <div class="kpi"><div class="kpi-label">Avail Eng Hrs</div><div class="kpi-val kv-green">14,820</div><div class="kpi-foot">Cumulative remaining</div></div>
+      <div class="kpi"><div class="kpi-label">Avail KCA Hrs</div><div class="kpi-val kv-teal">12,640</div><div class="kpi-foot">Cumulative KCA rem</div></div>
+      <div class="kpi"><div class="kpi-label">Avg Life Used</div><div class="kpi-val kv-amber" id="avg-pct">—</div><div class="kpi-foot">Across fleet</div></div>
+    </div>
+    <div class="card">
+      <div class="card-head">
+        <span class="card-title">Full Fleet Engine Register</span>
+        <div class="ftabs">
+          <span class="ftab on" onclick="filterFleet('all',this)">All (36)</span>
+          <span class="ftab" onclick="filterFleet('critical',this)">Critical</span>
+          <span class="ftab" onclick="filterFleet('caution',this)">Caution</span>
+          <span class="ftab" onclick="filterFleet('serviceable',this)">Serviceable</span>
+        </div>
+      </div>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>Engine ID</th><th>Type / Model</th><th>TBO (hrs)</th><th>TSN</th><th>TSO</th><th>Remaining</th><th>Life Used</th><th>KCA Status</th><th>DEEC</th><th>Aircraft</th><th>Status</th></tr></thead>
+          <tbody id="fleet-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════ PAGE: NOTIFICATIONS ══════════ -->
+  <div class="page" id="page-alerts">
+    <div class="info-strip">
+      <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="6" stroke="currentColor" stroke-width="1.2"/><line x1="7" y1="6" x2="7" y2="10" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><circle cx="7" cy="4" r=".7" fill="currentColor"/></svg>
+      Notification threshold set at <strong style="margin:0 4px">50 hrs remaining</strong>. All engines below this limit are listed. This page auto-generates as a printable separate sheet.
+    </div>
+    <div class="kpi-row kpi-3">
+      <div class="kpi"><div class="kpi-label">Below 50 hrs</div><div class="kpi-val kv-red">5</div><div class="kpi-foot">Immediate GOH required</div></div>
+      <div class="kpi"><div class="kpi-label">Below 100 hrs</div><div class="kpi-val kv-amber">8</div><div class="kpi-foot">Plan GOH induction</div></div>
+      <div class="kpi"><div class="kpi-label">Threshold</div><div class="kpi-val kv-blue">50</div><div class="kpi-foot">hrs · configurable</div></div>
+    </div>
+    <div class="section-label" style="margin-bottom:8px">Engines Below Notification Threshold — Separate Sheet</div>
+    <div class="card" id="notif-card"></div>
+  </div>
+
+  <!-- ══════════ PAGE: STAGGER ══════════ -->
+  <div class="page" id="page-stagger">
+    <div class="info-strip">
+      <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="6" stroke="currentColor" stroke-width="1.2"/><line x1="7" y1="6" x2="7" y2="10" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><circle cx="7" cy="4" r=".7" fill="currentColor"/></svg>
+      Stagger threshold: <strong style="margin:0 4px">600 hrs</strong>. Red line marks the GOH limit. Engines to the right of the line are overdue or approaching. Next 100-hr inspection windows shown in amber.
+    </div>
+    <div class="kpi-row kpi-4">
+      <div class="kpi"><div class="kpi-label">Good Stagger</div><div class="kpi-val kv-green">22</div><div class="kpi-foot">&gt; 600 hrs remaining</div></div>
+      <div class="kpi"><div class="kpi-label">Near Threshold</div><div class="kpi-val kv-amber">9</div><div class="kpi-foot">100–600 hrs rem</div></div>
+      <div class="kpi"><div class="kpi-label">At/Past Limit</div><div class="kpi-val kv-red">5</div><div class="kpi-foot">≤ 100 hrs rem</div></div>
+      <div class="kpi"><div class="kpi-label">Next 100-hr Insp</div><div class="kpi-val kv-blue">4</div><div class="kpi-foot">Due within 30 days</div></div>
+    </div>
+    <div class="card">
+      <div class="card-head"><span class="card-title">Engine / KCA / DEEC Stagger — Remaining Hours</span></div>
+      <div class="stagger-chart" id="stagger-chart"></div>
+    </div>
+  </div>
+
+  <!-- ══════════ PAGE: UTE RATE ══════════ -->
+  <div class="page" id="page-ute">
+    <div class="kpi-row kpi-4">
+      <div class="kpi"><div class="kpi-label">Current UTE Rate</div><div class="kpi-val kv-teal">18.4</div><div class="kpi-foot">hrs/month (fleet avg)</div></div>
+      <div class="kpi"><div class="kpi-label">3-Month Avg</div><div class="kpi-val kv-blue">17.9</div><div class="kpi-foot">Used for projections</div></div>
+      <div class="kpi"><div class="kpi-label">Peak Month</div><div class="kpi-val">22.1</div><div class="kpi-foot">Dec 2025</div></div>
+      <div class="kpi"><div class="kpi-label">Projected GOH</div><div class="kpi-val kv-amber">Aug 26</div><div class="kpi-foot">ENG-JF7-001 · 33 days</div></div>
+    </div>
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-head"><span class="card-title">Monthly UTE Rate History — Fleet Avg (hrs/month)</span></div>
+        <div class="card-body">
+          <div class="ute-bars" id="ute-bars"></div>
+          <div style="display:flex;justify-content:space-between;font-size:8px;color:var(--hint);font-family:var(--mono);margin-top:4px;padding:0 4px" id="ute-labels"></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-head"><span class="card-title">Per-Engine UTE Rate (Last 3 Months)</span></div>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>Engine ID</th><th>Mo-3</th><th>Mo-2</th><th>Mo-1</th><th>3M Avg</th><th>GOH Projection</th></tr></thead>
+            <tbody id="ute-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════ PAGE: PROJECTIONS ══════════ -->
+  <div class="page" id="page-proj">
+    <div class="info-strip">
+      <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="6" stroke="currentColor" stroke-width="1.2"/><line x1="7" y1="6" x2="7" y2="10" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><circle cx="7" cy="4" r=".7" fill="currentColor"/></svg>
+      Projections based on <strong style="margin:0 4px">3-month UTE rate average (17.9 hrs/month)</strong>. Adjust target date or add new engine inductions to recalculate.
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:14px;align-items:center">
+      <span style="font-size:11px;color:var(--muted)">Project to:</span>
+      <button class="ftab on">Dec 2026</button>
+      <button class="ftab">Dec 2027</button>
+      <button class="ftab">Dec 2028</button>
+      <span style="font-size:11px;color:var(--muted);margin-left:8px">New engine inductions:</span>
+      <input type="number" value="0" min="0" max="10" style="width:50px;background:var(--bg2);border:1px solid var(--line2);border-radius:4px;padding:4px 8px;color:var(--text);font-family:var(--mono);font-size:11px">
+      <button class="btn btn-acc">Recalculate</button>
+    </div>
+    <div class="kpi-row kpi-4" style="margin-bottom:14px">
+      <div class="kpi"><div class="kpi-label">Engines Available</div><div class="kpi-val kv-green">18</div><div class="kpi-foot">By Dec 2026</div></div>
+      <div class="kpi"><div class="kpi-label">Total Avail Hrs</div><div class="kpi-val kv-blue">6,480</div><div class="kpi-foot">Fleet projection</div></div>
+      <div class="kpi"><div class="kpi-label">Reach 600 hrs</div><div class="kpi-val kv-red">11</div><div class="kpi-foot">By target date</div></div>
+      <div class="kpi"><div class="kpi-label">Procurement Need</div><div class="kpi-val kv-amber">6</div><div class="kpi-foot">Replacement engines</div></div>
+    </div>
+    <div class="card">
+      <div class="card-head"><span class="card-title">Engine-wise Projection — Reaching 600 hrs by Date</span></div>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>Engine ID</th><th>Type</th><th>Remaining Hrs</th><th>UTE Rate (3M)</th><th>Projected GOH Date</th><th>Months to GOH</th><th>Next 100-hr Insp</th><th>Priority</th></tr></thead>
+          <tbody id="proj-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════ PAGE: EOM STATE ══════════ -->
+  <div class="page" id="page-eom">
+    <div class="kpi-row kpi-4">
+      <div class="kpi"><div class="kpi-label">Total EOM Runs</div><div class="kpi-val">284</div><div class="kpi-foot">All time</div></div>
+      <div class="kpi"><div class="kpi-label">This Month</div><div class="kpi-val kv-blue">18</div><div class="kpi-foot">Mar 2026</div></div>
+      <div class="kpi"><div class="kpi-label">Avg Duration</div><div class="kpi-val kv-teal">3h 54m</div><div class="kpi-foot">Per EOM run</div></div>
+      <div class="kpi"><div class="kpi-label">Anomalies Logged</div><div class="kpi-val kv-amber">3</div><div class="kpi-foot">Last 90 days</div></div>
+    </div>
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-head"><span class="card-title">EOM Chronological Utilisation Log</span></div>
+        <div class="card-body" style="padding:0">
+          <div style="padding:12px 14px" id="eom-timeline"></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-head"><span class="card-title">EOM State by Engine</span></div>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>Engine ID</th><th>EOM Hrs This Mo</th><th>EOM Starts</th><th>Last Run</th><th>State</th></tr></thead>
+            <tbody id="eom-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════ PAGE: STATISTICS ══════════ -->
+  <div class="page" id="page-stats">
+    <div style="display:flex;gap:8px;margin-bottom:14px;align-items:center">
+      <span style="font-size:11px;color:var(--muted)">Period:</span>
+      <button class="ftab on">Monthly</button>
+      <button class="ftab">Quarterly</button>
+      <button class="ftab">Yearly</button>
+      <span style="margin-left:8px;font-size:11px;color:var(--muted)">Year:</span>
+      <button class="ftab on">2025–26</button>
+      <button class="ftab">2024–25</button>
+    </div>
+    <div class="stat-matrix" id="stat-matrix"></div>
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-head"><span class="card-title">Monthly Engine Hours — Fleet Total</span></div>
+        <div class="card-body">
+          <div class="ute-bars" id="stat-bars"></div>
+          <div style="display:flex;justify-content:space-between;font-size:8px;color:var(--hint);font-family:var(--mono);margin-top:4px;padding:0 4px" id="stat-labels"></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-head"><span class="card-title">Milestone Tracking — Engines at 600 / 1200 hrs</span></div>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>Engine ID</th><th>600 hrs Reached</th><th>1200 hrs Reached</th><th>Total Hrs</th><th>Ground Starts</th><th>Air Starts</th></tr></thead>
+            <tbody id="milestone-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════ PAGE: UPLOAD DATA ══════════ -->
+  <div class="page" id="page-upload">
+    <div class="grid-2">
+      <div class="gap-12">
+        <div class="upload-zone" id="drop-zone">
+          <svg width="36" height="36" viewBox="0 0 36 36" fill="none"><rect x="1" y="1" width="34" height="34" rx="8" stroke="var(--accent)" stroke-width="1.2"/><path d="M18 24V14M13 18l5-5 5 5" stroke="var(--accent)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><rect x="10" y="24" width="16" height="3" rx="1.5" fill="var(--accent)" opacity=".3"/></svg>
+          <div class="upload-title">Drop engine data file here</div>
+          <div class="upload-hint">CSV · Excel (.xlsx) · TXT — EFM export format supported</div>
+          <button class="btn btn-acc" style="margin-top:4px">Browse Files</button>
+        </div>
+        <div class="card">
+          <div class="card-head"><span class="card-title">Expected Fields</span></div>
+          <div class="field-map" style="padding:12px">
+            <div class="field-row"><span class="field-src">Engine_Serial_No</span><span class="field-arrow">→</span><span class="field-dst">engine_id</span></div>
+            <div class="field-row"><span class="field-src">Hours_Since_New</span><span class="field-arrow">→</span><span class="field-dst">tsn</span></div>
+            <div class="field-row"><span class="field-src">Hours_Since_OH</span><span class="field-arrow">→</span><span class="field-dst">tso</span></div>
+            <div class="field-row"><span class="field-src">Cycles_Since_New</span><span class="field-arrow">→</span><span class="field-dst">csn</span></div>
+            <div class="field-row"><span class="field-src">Flight_Date</span><span class="field-arrow">→</span><span class="field-dst">efm_date</span></div>
+            <div class="field-row"><span class="field-src">Flight_Hours</span><span class="field-arrow">→</span><span class="field-dst">efm_hours</span></div>
+            <div class="field-row"><span class="field-src">Ground_Starts</span><span class="field-arrow">→</span><span class="field-dst">gnd_starts</span></div>
+            <div class="field-row"><span class="field-src">Air_Starts</span><span class="field-arrow">→</span><span class="field-dst">air_starts</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-head"><span class="card-title">Recent Uploads</span></div>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>Filename</th><th>Uploaded By</th><th>Date</th><th>Records</th><th>Status</th></tr></thead>
+            <tbody>
+              <tr class="tr"><td class="eid">EFM_MAR26_BATCH.csv</td><td class="dim">Tariq</td><td class="mono">15 Mar 2026</td><td class="mono">48</td><td><span class="badge b-green"><span class="bdot" style="background:var(--green)"></span>Accepted</span></td></tr>
+              <tr class="tr"><td class="eid">EFM_FEB26_BATCH.csv</td><td class="dim">Raza</td><td class="mono">02 Feb 2026</td><td class="mono">52</td><td><span class="badge b-green"><span class="bdot" style="background:var(--green)"></span>Accepted</span></td></tr>
+              <tr class="tr"><td class="eid">KCA_AUDIT_JAN26.xlsx</td><td class="dim">Malik</td><td class="mono">18 Jan 2026</td><td class="mono">36</td><td><span class="badge b-amber"><span class="bdot" style="background:var(--amber)"></span>2 Warnings</span></td></tr>
+              <tr class="tr"><td class="eid">DEEC_UPDATE_JAN26.csv</td><td class="dim">Tariq</td><td class="mono">10 Jan 2026</td><td class="mono">36</td><td><span class="badge b-green"><span class="bdot" style="background:var(--green)"></span>Accepted</span></td></tr>
+              <tr class="tr"><td class="eid">EFM_DEC25_BATCH.csv</td><td class="dim">Raza</td><td class="mono">04 Dec 2025</td><td class="mono">61</td><td><span class="badge b-red"><span class="bdot" style="background:var(--red)"></span>3 Errors</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════ PAGE: USERS ══════════ -->
+  <div class="page" id="page-users">
+    <div class="kpi-row kpi-4">
+      <div class="kpi"><div class="kpi-label">Total Users</div><div class="kpi-val">12</div><div class="kpi-foot">Across all roles</div></div>
+      <div class="kpi"><div class="kpi-label">Admins</div><div class="kpi-val kv-red">2</div><div class="kpi-foot">Full access</div></div>
+      <div class="kpi"><div class="kpi-label">Engineers</div><div class="kpi-val kv-blue">6</div><div class="kpi-foot">Upload &amp; edit</div></div>
+      <div class="kpi"><div class="kpi-label">Viewers / FM</div><div class="kpi-val kv-teal">4</div><div class="kpi-foot">Read-only / reports</div></div>
+    </div>
+    <div class="card">
+      <div class="card-head"><span class="card-title">User Register</span><button class="btn btn-acc" style="margin-left:auto;font-size:10px">+ Add User</button></div>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>Name</th><th>Rank</th><th>Role</th><th>Base</th><th>Last Login</th><th>Status</th></tr></thead>
+          <tbody>
+            <tr class="tr"><td class="eid">Hasan</td><td class="dim">AC</td><td><span class="badge b-red">Admin</span></td><td class="dim">GHQ</td><td class="mono">29 Mar 2026</td><td><span class="badge b-green"><span class="bdot" style="background:var(--green)"></span>Active</span></td></tr>
+            <tr class="tr"><td class="eid">Tariq</td><td class="dim">WC</td><td><span class="badge b-blue">Engineer</span></td><td class="dim">Kamra</td><td class="mono">29 Mar 2026</td><td><span class="badge b-green"><span class="bdot" style="background:var(--green)"></span>Active</span></td></tr>
+            <tr class="tr"><td class="eid">Malik</td><td class="dim">SL</td><td><span class="badge b-blue">Engineer</span></td><td class="dim">Kamra</td><td class="mono">28 Mar 2026</td><td><span class="badge b-green"><span class="bdot" style="background:var(--green)"></span>Active</span></td></tr>
+            <tr class="tr"><td class="eid">Raza</td><td class="dim">FL</td><td><span class="badge b-blue">Engineer</span></td><td class="dim">Sargodha</td><td class="mono">27 Mar 2026</td><td><span class="badge b-green"><span class="bdot" style="background:var(--green)"></span>Active</span></td></tr>
+            <tr class="tr"><td class="eid">Pervez</td><td class="dim">GC</td><td><span class="badge b-teal">Fleet Mgr</span></td><td class="dim">GHQ</td><td class="mono">25 Mar 2026</td><td><span class="badge b-green"><span class="bdot" style="background:var(--green)"></span>Active</span></td></tr>
+            <tr class="tr"><td class="eid">Siddiq</td><td class="dim">FO</td><td><span class="badge b-teal">Viewer</span></td><td class="dim">Kamra</td><td class="mono">20 Mar 2026</td><td><span class="badge b-amber"><span class="bdot" style="background:var(--amber)"></span>Inactive</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div><!-- end main -->
+</div><!-- end app -->
+
+<script>
+// ── DATA ──
+const engines = [
+  {id:"ENG-JF7-001",type:"RD-93",       tbo:2400,used:2358,ac:"JF-17 · 301",kca:"Compliant",deec:"OK"},
+  {id:"ENG-JF7-002",type:"RD-93",       tbo:2400,used:2330,ac:"JF-17 · 302",kca:"Compliant",deec:"OK"},
+  {id:"ENG-F16-001",type:"F100-PW-229", tbo:4000,used:3960,ac:"F-16C · 751", kca:"Due",     deec:"OK"},
+  {id:"ENG-MIR-001",type:"M53-P2",      tbo:3200,used:3155,ac:"Mirage · 201",kca:"Compliant",deec:"Cal Due"},
+  {id:"ENG-K8-001", type:"WS-11B",      tbo:2000,used:1968,ac:"K-8 · 401",   kca:"Discrepancy",deec:"OK"},
+  {id:"ENG-F16-002",type:"F100-PW-229", tbo:4000,used:3600,ac:"F-16C · 752", kca:"Compliant",deec:"OK"},
+  {id:"ENG-MIR-002",type:"M53-P2",      tbo:3200,used:2800,ac:"Mirage · 202",kca:"Compliant",deec:"OK"},
+  {id:"ENG-JF7-003",type:"RD-93",       tbo:2400,used:2100,ac:"JF-17 · 303", kca:"Compliant",deec:"OK"},
+  {id:"ENG-F16-003",type:"F100-PW-229", tbo:4000,used:3200,ac:"F-16D · 753", kca:"Compliant",deec:"OK"},
+  {id:"ENG-K8-002", type:"WS-11B",      tbo:2000,used:1600,ac:"K-8 · 402",   kca:"Compliant",deec:"OK"},
+  {id:"ENG-JF7-004",type:"RD-93",       tbo:2400,used:1800,ac:"JF-17 · 304", kca:"Compliant",deec:"OK"},
+  {id:"ENG-F16-004",type:"F100-PW-229", tbo:4000,used:2400,ac:"F-16D · 754", kca:"Compliant",deec:"OK"},
+];
+
+function getStatus(pct){
+  if(pct>=98)return{label:"Critical",cls:"b-red",  bar:"var(--red)",   cat:"critical"};
+  if(pct>=85)return{label:"Caution", cls:"b-amber", bar:"var(--amber)", cat:"caution"};
+  return           {label:"Svcble",  cls:"b-green", bar:"var(--green)", cat:"serviceable"};
+}
+
+// ── NAVIGATION ──
+const pageMap = {
+  daily:"Daily State", fleet:"Fleet Register", alerts:"Notifications",
+  stagger:"Stagger Analysis", ute:"UTE Rate & Trends", proj:"Projections",
+  eom:"EOM State", stats:"Statistics", upload:"Upload Data", users:"Users & Roles"
+};
+function showPage(id, el){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.ni').forEach(n=>n.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  if(el)el.classList.add('active');
+  document.getElementById('tb-title').textContent = pageMap[id]||id;
+}
+
+// ── FLEET LIFE STRIP ──
+function buildLifeStrip(){
+  const strip = document.getElementById('fleet-life-strip');
+  if(!strip)return;
+  strip.style.display='flex';strip.style.gap='3px';strip.style.flexWrap='wrap';
+  engines.forEach(e=>{
+    const pct=Math.round((e.used/e.tbo)*100);
+    const s=getStatus(pct);
+    const cell=document.createElement('div');
+    cell.title=`${e.id} · ${pct}% used`;
+    cell.style.cssText=`width:36px;height:36px;border-radius:4px;background:${s.bar};opacity:${0.2+pct/160};border:1px solid ${s.bar};display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:8px;color:#fff;font-weight:500;cursor:pointer`;
+    cell.textContent=pct+'%';
+    strip.appendChild(cell);
+  });
+}
+
+// ── CRITICAL TABLE ──
+function buildCriticalTable(){
+  const tb=document.getElementById('critical-tbody');
+  if(!tb)return;
+  const crit=engines.filter(e=>(e.used/e.tbo)>=0.85).slice(0,6);
+  crit.forEach(e=>{
+    const rem=e.tbo-e.used;
+    const pct=Math.round((e.used/e.tbo)*100);
+    const s=getStatus(pct);
+    const ute=17.9;
+    const nextInsp=Math.round(rem%100)||100;
+    const tr=document.createElement('tr');tr.className='tr';
+    tr.innerHTML=`<td class="eid">${e.id}</td><td class="dim">${e.type}</td><td class="mono">${e.tbo.toLocaleString()}</td><td class="mono">${e.used.toLocaleString()}</td><td class="mono" style="color:${s.bar};font-weight:500">${rem.toLocaleString()}</td><td><div class="bar-wrap"><div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:${s.bar}"></div></div><span class="bar-pct">${pct}%</span></div></td><td><span class="badge ${s.cls}"><span class="bdot" style="background:${s.bar}"></span>${s.label}</span></td><td class="dim">${e.ac}</td><td class="mono" style="color:var(--amber)">${nextInsp} hrs</td>`;
+    tb.appendChild(tr);
+  });
+}
+
+// ── FLEET REGISTER TABLE ──
+function buildFleetTable(filter){
+  const tb=document.getElementById('fleet-tbody');if(!tb)return;
+  tb.innerHTML='';
+  let total=0,count=0;
+  engines.forEach(e=>{
+    const rem=e.tbo-e.used;
+    const pct=Math.round((e.used/e.tbo)*100);
+    const s=getStatus(pct);
+    total+=pct;count++;
+    if(filter&&filter!=='all'&&filter!==s.cat)return;
+    const tso=Math.round(e.used*0.6);
+    const kbadge=e.kca==='Compliant'?'b-green':e.kca==='Due'?'b-amber':'b-red';
+    const dbadge=e.deec==='OK'?'b-green':'b-amber';
+    const tr=document.createElement('tr');tr.className='tr';
+    tr.innerHTML=`<td class="eid">${e.id}</td><td class="dim">${e.type}</td><td class="mono">${e.tbo.toLocaleString()}</td><td class="mono">${e.used.toLocaleString()}</td><td class="mono">${tso.toLocaleString()}</td><td class="mono" style="color:${s.bar};font-weight:500">${rem.toLocaleString()}</td><td><div class="bar-wrap"><div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:${s.bar}"></div></div><span class="bar-pct">${pct}%</span></div></td><td><span class="badge ${kbadge}">${e.kca}</span></td><td><span class="badge ${dbadge}">${e.deec}</span></td><td class="dim">${e.ac}</td><td><span class="badge ${s.cls}"><span class="bdot" style="background:${s.bar}"></span>${s.label}</span></td>`;
+    tb.appendChild(tr);
+  });
+  const avg=Math.round(total/count);
+  const el=document.getElementById('avg-pct');
+  if(el)el.textContent=avg+'%';
+}
+function filterFleet(f,el){
+  document.querySelectorAll('.ftab').forEach(t=>t.classList.remove('on'));
+  el.classList.add('on');
+  buildFleetTable(f);
+}
+
+// ── NOTIFICATIONS ──
+function buildNotifications(){
+  const card=document.getElementById('notif-card');if(!card)return;
+  const crit=engines.filter(e=>(e.tbo-e.used)<=100).sort((a,b)=>(a.tbo-a.used)-(b.tbo-b.used));
+  crit.forEach(e=>{
+    const rem=e.tbo-e.used;
+    const pct=Math.round((e.used/e.tbo)*100);
+    const s=getStatus(pct);
+    const div=document.createElement('div');div.className='notif-item';
+    div.innerHTML=`<span class="notif-item ni-engine">${e.id}</span><span class="ni-remain" style="color:${s.bar};min-width:52px">${rem} hrs</span><div class="ni-detail"><div class="ni-desc">${e.type} — ${e.ac}</div><div class="ni-meta">TBO: ${e.tbo} · Used: ${e.used} · ${pct}% life consumed</div></div><span class="badge ${s.cls}"><span class="bdot" style="background:${s.bar}"></span>${s.label}</span>`;
+    card.appendChild(div);
+  });
+}
+
+// ── STAGGER CHART ──
+function buildStagger(){
+  const chart=document.getElementById('stagger-chart');if(!chart)return;
+  const maxHrs=3200;
+  const threshold=600;
+  const threshPct=(threshold/maxHrs)*100;
+  chart.innerHTML=`<div class="stagger-axis"><span>0</span><span>400</span><span>800</span><span>1200</span><span>1600</span><span>2000</span><span>2400</span><span>2800</span><span>3200 hrs</span></div><div class="stagger-lanes" id="sl-lanes"></div><div class="stagger-line" style="left:${threshPct}%;"><span class="stagger-line-label">600 hr GOH</span></div>`;
+  const lanes=document.getElementById('sl-lanes');
+  engines.forEach(e=>{
+    const rem=e.tbo-e.used;
+    const fillPct=(rem/maxHrs)*100;
+    const color=rem<=100?'var(--red)':rem<=600?'var(--amber)':'var(--accent)';
+    const div=document.createElement('div');div.className='stagger-lane';
+    div.innerHTML=`<span class="sl-label">${e.id.replace('ENG-','')}</span><div class="sl-track"><div class="sl-fill" style="width:${fillPct}%;background:${color}20;border-left:2px solid ${color}"><span class="sl-fill-label" style="color:${color}">${rem}</span></div></div><span class="sl-rem" style="color:${color}">${rem} hrs</span>`;
+    lanes.appendChild(div);
+  });
+}
+
+// ── UTE BARS ──
+function buildUTE(){
+  const bars=document.getElementById('ute-bars');
+  const labels=document.getElementById('ute-labels');
+  if(!bars)return;
+  const months=['Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec','Jan','Feb','Mar'];
+  const vals=[14.2,15.8,16.1,17.4,18.9,19.2,20.1,22.1,18.8,17.2,17.6,18.4];
+  const maxV=Math.max(...vals);
+  months.forEach((m,i)=>{
+    const h=Math.round((vals[i]/maxV)*72);
+    const isCur=i===11;
+    const bar=document.createElement('div');bar.className='ute-bar-wrap';
+    bar.innerHTML=`<div class="ute-bar${isCur?' cur':''}" style="height:${h}px"></div>`;
+    bars.appendChild(bar);
+  });
+  months.forEach(m=>{
+    const span=document.createElement('span');span.textContent=m;labels.appendChild(span);
+  });
+  // per-engine UTE table
+  const tb=document.getElementById('ute-tbody');if(!tb)return;
+  engines.slice(0,8).forEach(e=>{
+    const m1=+(14+Math.random()*8).toFixed(1);
+    const m2=+(14+Math.random()*8).toFixed(1);
+    const m3=+(14+Math.random()*8).toFixed(1);
+    const avg=+((m1+m2+m3)/3).toFixed(1);
+    const rem=e.tbo-e.used;
+    const monthsToGOH=Math.ceil(rem/avg);
+    const d=new Date(2026,2+monthsToGOH,1);
+    const gohStr=d.toLocaleDateString('en-GB',{month:'short',year:'numeric'});
+    const tr=document.createElement('tr');tr.className='tr';
+    tr.innerHTML=`<td class="eid">${e.id}</td><td class="mono">${m1}</td><td class="mono">${m2}</td><td class="mono">${m3}</td><td class="mono" style="font-weight:500;color:var(--teal)">${avg}</td><td class="mono" style="color:var(--amber)">${gohStr}</td>`;
+    tb.appendChild(tr);
+  });
+}
+
+// ── PROJECTIONS ──
+function buildProjections(){
+  const tb=document.getElementById('proj-tbody');if(!tb)return;
+  const sorted=[...engines].sort((a,b)=>(a.tbo-a.used)-(b.tbo-b.used));
+  sorted.forEach((e,i)=>{
+    const rem=e.tbo-e.used;
+    const ute=+(15+Math.random()*6).toFixed(1);
+    const months=Math.ceil(rem/ute);
+    const d=new Date(2026,2+months,1);
+    const gohStr=d.toLocaleDateString('en-GB',{month:'short',year:'numeric'});
+    const nextInsp=Math.round(rem%100)||Math.round(rem/2);
+    const pri=rem<=100?{label:'IMMEDIATE',cls:'b-red'}:rem<=600?{label:'HIGH',cls:'b-amber'}:{label:'WATCH',cls:'b-blue'};
+    const tr=document.createElement('tr');
+    tr.className=`tr${rem<=100?' proj-crit':rem<=600?' proj-warn':''}`;
+    tr.innerHTML=`<td class="eid">${e.id}</td><td class="dim">${e.type}</td><td class="mono" style="color:${rem<=100?'var(--red)':rem<=600?'var(--amber)':'var(--text)'};font-weight:500">${rem.toLocaleString()}</td><td class="mono">${ute} hrs/mo</td><td class="mono" style="color:var(--amber)">${gohStr}</td><td class="mono">${months} mo</td><td class="mono" style="color:var(--accent)">${nextInsp} hrs</td><td><span class="badge ${pri.cls}">${pri.label}</span></td>`;
+    tb.appendChild(tr);
+  });
+}
+
+// ── EOM ──
+function buildEOM(){
+  const tl=document.getElementById('eom-timeline');if(!tl)return;
+  const entries=[
+    {id:'ENG-JF7-001',date:'15 Mar 2026',hrs:'3h 42m',starts:2,type:'Ground',note:'Normal run, no anomaly'},
+    {id:'ENG-F16-001',date:'14 Mar 2026',hrs:'4h 12m',starts:3,type:'Ground + Air',note:'High EGT noted at 98% N1'},
+    {id:'ENG-MIR-001',date:'12 Mar 2026',hrs:'3h 55m',starts:2,type:'Ground',note:'Post-repair acceptance run'},
+    {id:'ENG-K8-001', date:'10 Mar 2026',hrs:'2h 30m',starts:1,type:'Ground',note:'Normal run, passed all checks'},
+    {id:'ENG-JF7-002',date:'08 Mar 2026',hrs:'4h 00m',starts:4,type:'Ground + Air',note:'Normal run'},
+  ];
+  entries.forEach((e,i)=>{
+    const isLast=i===entries.length-1;
+    const hasAnomaly=e.note.includes('High')||e.note.includes('anomaly');
+    const dotColor=hasAnomaly?'var(--amber)':'var(--teal)';
+    const div=document.createElement('div');div.className='eom-item';
+    div.innerHTML=`<div class="eom-dot-col"><div class="eom-dot" style="background:${dotColor}"></div>${!isLast?'<div class="eom-line"></div>':''}</div><div class="eom-content"><div class="eom-header"><span class="eom-id">${e.id}</span><span class="eom-date">${e.date}</span>${hasAnomaly?'<span class="badge b-amber">Anomaly</span>':''}</div><div class="eom-detail">${e.note}</div><div class="eom-stats"><span class="eom-stat">Duration: <span>${e.hrs}</span></span><span class="eom-stat">Starts: <span>${e.starts}</span></span><span class="eom-stat">Type: <span>${e.type}</span></span></div></div>`;
+    tl.appendChild(div);
+  });
+  const tb=document.getElementById('eom-tbody');if(!tb)return;
+  engines.slice(0,8).forEach(e=>{
+    const hrs=(+(2+Math.random()*4).toFixed(1));
+    const starts=Math.floor(1+Math.random()*4);
+    const tr=document.createElement('tr');tr.className='tr';
+    tr.innerHTML=`<td class="eid">${e.id}</td><td class="mono">${hrs}h</td><td class="mono">${starts}</td><td class="mono">Mar 2026</td><td><span class="badge b-green"><span class="bdot" style="background:var(--green)"></span>Normal</span></td>`;
+    tb.appendChild(tr);
+  });
+}
+
+// ── STATS ──
+function buildStats(){
+  const matrix=document.getElementById('stat-matrix');if(!matrix)return;
+  const cells=[
+    {val:'3,840',label:'Total Engine Hrs (YTD)'},
+    {val:'3,690',label:'Total KCA Hrs (YTD)'},
+    {val:'3,720',label:'Total DEEC Hrs (YTD)'},
+    {val:'284',label:'EOM Runs (YTD)'},
+    {val:'1,240',label:'Ground Starts (YTD)'},
+    {val:'312',label:'Air Starts (YTD)'},
+    {val:'7',label:'Engines at 600 hrs'},
+    {val:'3',label:'Engines at 1200 hrs'},
+  ];
+  cells.forEach(c=>{
+    const div=document.createElement('div');div.className='stat-cell';
+    div.innerHTML=`<div class="stat-cell-val">${c.val}</div><div class="stat-cell-label">${c.label}</div>`;
+    matrix.appendChild(div);
+  });
+  // stat bars
+  const bars=document.getElementById('stat-bars');
+  const labels=document.getElementById('stat-labels');
+  if(!bars)return;
+  const months=['Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec','Jan','Feb','Mar'];
+  const vals=[280,310,295,330,355,370,410,430,360,340,345,360];
+  const maxV=Math.max(...vals);
+  months.forEach((m,i)=>{
+    const h=Math.round((vals[i]/maxV)*72);
+    const bar=document.createElement('div');bar.className='ute-bar-wrap';
+    bar.innerHTML=`<div class="ute-bar${i===11?' cur':''}" style="height:${h}px"></div>`;
+    bars.appendChild(bar);
+  });
+  months.forEach(m=>{const span=document.createElement('span');span.textContent=m;labels.appendChild(span);});
+  // milestone table
+  const tb=document.getElementById('milestone-tbody');if(!tb)return;
+  engines.slice(0,8).forEach(e=>{
+    const hit600=e.used>=600?new Date(2023,Math.floor(Math.random()*12),1).toLocaleDateString('en-GB',{month:'short',year:'numeric'}):'—';
+    const hit1200=e.used>=1200?new Date(2024,Math.floor(Math.random()*12),1).toLocaleDateString('en-GB',{month:'short',year:'numeric'}):'—';
+    const gs=Math.floor(50+Math.random()*200);
+    const as=Math.floor(10+Math.random()*80);
+    const tr=document.createElement('tr');tr.className='tr';
+    tr.innerHTML=`<td class="eid">${e.id}</td><td class="mono" style="color:var(--amber)">${hit600}</td><td class="mono" style="color:var(--red)">${hit1200}</td><td class="mono">${e.used.toLocaleString()}</td><td class="mono">${gs}</td><td class="mono">${as}</td>`;
+    tb.appendChild(tr);
+  });
+}
+
+// ── BASE CYCLER ──
+const bases=['KAMRA','SARGODHA','PESHAWAR','ALL'];
+let baseIdx=0;
+function cycleBase(){baseIdx=(baseIdx+1)%bases.length;document.getElementById('base-val').textContent=bases[baseIdx];}
+
+// ── INIT ──
+buildLifeStrip();
+buildCriticalTable();
+buildFleetTable('all');
+buildNotifications();
+buildStagger();
+buildUTE();
+buildProjections();
+buildEOM();
+buildStats();
+</script>
+</body>
+</html>
